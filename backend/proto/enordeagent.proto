@@ -1,0 +1,328 @@
+syntax = "proto3";
+
+package enordeagent;
+
+// ============================================================================
+// Data Types
+// ============================================================================
+
+message CpuInfo {
+    string model = 1;
+    string vendor = 2;
+    string architecture = 3;
+    uint32 cores = 4;
+    uint32 threads = 5;
+    uint64 base_frequency_mhz = 6;
+    uint64 max_frequency_mhz = 7;
+    uint64 cache_l1_kb = 8;
+    uint64 cache_l2_kb = 9;
+    uint64 cache_l3_kb = 10;
+    repeated string flags = 11;
+}
+
+message MemoryDimm {
+    string slot = 1;
+    uint64 size_bytes = 2;
+    uint32 speed_mhz = 3;
+    string memory_type = 4;
+    string manufacturer = 5;
+    string serial_number = 6;
+    string part_number = 7;
+}
+
+message MemoryInfo {
+    uint32 total_slots = 1;
+    uint32 used_slots = 2;
+    uint32 free_slots = 3;
+    uint64 total_memory_bytes = 4;
+    repeated MemoryDimm dimms = 5;
+}
+
+message PartitionInfo {
+    string name = 1;
+    string mount_point = 2;
+    string filesystem = 3;
+    uint64 size_bytes = 4;
+    uint64 used_bytes = 5;
+    uint64 available_bytes = 6;
+    double usage_percent = 7;
+}
+
+message DiskInfo {
+    string device = 1;
+    string model = 2;
+    string serial_number = 3;
+    uint64 size_bytes = 4;
+    string disk_type = 5;
+    repeated PartitionInfo partitions = 6;
+}
+
+message NetworkInterfaceInfo {
+    string name = 1;
+    string mac_address = 2;
+    uint64 speed_mbps = 3;
+    string duplex = 4;
+    string driver = 5;
+    repeated string ip_addresses = 6;
+}
+
+message MotherboardInfo {
+    string manufacturer = 1;
+    string product_name = 2;
+    string version = 3;
+    string serial_number = 4;
+    string bios_vendor = 5;
+    string bios_version = 6;
+    string bios_date = 7;
+}
+
+message HardwareInfo {
+    int64 timestamp = 1;
+    string user_id = 2;
+    string hostname = 3;
+    string agent_id = 4;
+    CpuInfo cpu = 5;
+    MemoryInfo memory = 6;
+    repeated DiskInfo disks = 7;
+    repeated NetworkInterfaceInfo network_interfaces = 8;
+    MotherboardInfo motherboard = 9;
+}
+
+message MetricData {
+    int64 timestamp = 1;
+    string user_id = 2;
+    string hostname = 3;
+    string agent_id = 4;
+    double cpu_usage_percent = 5;
+    int32 cpu_count = 6;
+    uint64 memory_total = 7;
+    uint64 memory_used = 8;
+    uint64 memory_available = 9;
+    double memory_usage_percent = 10;
+    uint64 disk_read_bytes_per_sec = 11;
+    uint64 disk_write_bytes_per_sec = 12;
+    uint64 disk_read_ops_per_sec = 13;
+    uint64 disk_write_ops_per_sec = 14;
+    uint64 network_rx_bytes_per_sec = 15;
+    uint64 network_tx_bytes_per_sec = 16;
+    uint64 uptime_seconds = 17;
+    map<string, string> labels = 18;
+}
+
+// ============================================================================
+// UserService (exposed by UI Server)
+// ============================================================================
+
+service UserService {
+    // Validate API key and return user_id
+    rpc ValidateApiKey(ValidateApiKeyRequest) returns (ValidateApiKeyResponse);
+    
+    // Invalidate API key (called when user deletes key)
+    rpc InvalidateApiKey(InvalidateApiKeyRequest) returns (InvalidateApiKeyResponse);
+    
+    // Get user info by user_id
+    rpc GetUserInfo(GetUserInfoRequest) returns (GetUserInfoResponse);
+}
+
+message ValidateApiKeyRequest {
+    string api_key = 1;
+}
+
+message ValidateApiKeyResponse {
+    bool valid = 1;
+    string user_id = 2;
+    string error_message = 3;
+}
+
+message InvalidateApiKeyRequest {
+    string api_key = 1;
+}
+
+message InvalidateApiKeyResponse {
+    bool success = 1;
+}
+
+message GetUserInfoRequest {
+    string user_id = 1;
+}
+
+message GetUserInfoResponse {
+    bool found = 1;
+    string user_id = 2;
+    string username = 3;
+    string email = 4;
+}
+
+// ============================================================================
+// DataService (exposed by JetStream Service)
+// ============================================================================
+
+service DataService {
+    // Get list of servers for a user (including shared ones)
+    rpc GetServers(GetServersRequest) returns (GetServersResponse);
+    
+    // Get latest metrics for a server
+    rpc GetMetrics(GetMetricsRequest) returns (GetMetricsResponse);
+    
+    // Get historical metrics
+    rpc GetMetricsHistory(GetMetricsHistoryRequest) returns (GetMetricsHistoryResponse);
+    
+    // Get hardware info
+    rpc GetHardware(GetHardwareRequest) returns (GetHardwareResponse);
+    
+    // Stream real-time metric updates
+    rpc StreamMetrics(StreamMetricsRequest) returns (stream MetricUpdate);
+    
+    // Server sharing operations
+    rpc ShareServer(ShareServerRequest) returns (ShareServerResponse);
+    rpc RevokeServerShare(RevokeServerShareRequest) returns (RevokeServerShareResponse);
+    rpc ListServerShares(ListServerSharesRequest) returns (ListServerSharesResponse);
+    rpc GetSharedServers(GetSharedServersRequest) returns (GetSharedServersResponse);
+    
+    // Health check
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// Server messages
+message GetServersRequest {
+    string user_id = 1;
+    bool include_shared = 2;
+}
+
+message ServerInfo {
+    string server_id = 1;
+    string hostname = 2;
+    string agent_id = 3;
+    string owner_user_id = 4;
+    string owner_username = 5;
+    bool is_shared = 6;
+    string shared_by_user_id = 7;
+    string shared_by_username = 8;
+    string permission_level = 9;  // 'owner', 'read', 'write'
+    int64 last_seen_timestamp = 10;
+    int32 share_count = 11;
+}
+
+message GetServersResponse {
+    repeated ServerInfo servers = 1;
+    int32 total_count = 2;
+    int32 owned_count = 3;
+    int32 shared_count = 4;
+}
+
+// Metrics messages
+message GetMetricsRequest {
+    string user_id = 1;
+    string server_id = 2;
+    string hostname = 3;
+}
+
+message GetMetricsResponse {
+    MetricData metric = 1;
+    bool found = 2;
+    string error_message = 3;
+}
+
+message GetMetricsHistoryRequest {
+    string user_id = 1;
+    string server_id = 2;
+    string hostname = 3;
+    int64 from_timestamp = 4;
+    int64 to_timestamp = 5;
+    int32 limit = 6;
+}
+
+message GetMetricsHistoryResponse {
+    repeated MetricData metrics = 1;
+    int32 total_count = 2;
+}
+
+// Hardware messages
+message GetHardwareRequest {
+    string user_id = 1;
+    string server_id = 2;
+    string hostname = 3;
+}
+
+message GetHardwareResponse {
+    HardwareInfo hardware = 1;
+    bool found = 2;
+    string error_message = 3;
+}
+
+// Streaming messages
+message StreamMetricsRequest {
+    string user_id = 1;  // Empty = all users (admin)
+}
+
+message MetricUpdate {
+    string user_id = 1;
+    string server_id = 2;
+    MetricData metric = 3;
+}
+
+// Server sharing messages
+message ShareServerRequest {
+    string owner_user_id = 1;
+    string server_id = 2;
+    string grantee_user_id = 3;
+    string grantee_email = 4;  // Used when grantee doesn't exist yet
+    string permission_level = 5;  // 'read' or 'write'
+}
+
+message ShareServerResponse {
+    bool success = 1;
+    string share_id = 2;
+    string message = 3;
+    bool invitation_created = 4;  // True if user doesn't exist yet
+}
+
+message RevokeServerShareRequest {
+    string owner_user_id = 1;
+    string server_id = 2;
+    string grantee_user_id = 3;
+}
+
+message RevokeServerShareResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message ServerShareInfo {
+    string share_id = 1;
+    string server_id = 2;
+    string hostname = 3;
+    string owner_user_id = 4;
+    string owner_username = 5;
+    string grantee_user_id = 6;
+    string grantee_username = 7;
+    string grantee_email = 8;
+    string permission_level = 9;
+    int64 created_at = 10;
+}
+
+message ListServerSharesRequest {
+    string user_id = 1;
+    string server_id = 2;  // Optional: list shares for specific server
+}
+
+message ListServerSharesResponse {
+    repeated ServerShareInfo shares = 1;
+}
+
+message GetSharedServersRequest {
+    string user_id = 1;
+}
+
+message GetSharedServersResponse {
+    repeated ServerInfo servers = 1;
+}
+
+// Health check messages
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+    bool healthy = 1;
+    string version = 2;
+    int64 timestamp = 3;
+}
