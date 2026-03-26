@@ -391,5 +391,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Support
 
 For issues and questions, please visit:
-https://github.com/henricktom/enorde-user-server-frontend/issues#   e n o r d e - u s e r - s e r v e r  
- 
+https://github.com/henricktom/enorde-user-server-frontend/issues
