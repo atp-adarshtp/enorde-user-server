@@ -23,8 +23,8 @@ router.post('/', async (req, res) => {
     const apiKey = uuidv4();
     const createdAt = Math.floor(Date.now() / 1000);
 
-    run(
-      'INSERT INTO api_keys (id, user_id, api_key, name, created_at) VALUES (?, ?, ?, ?, ?)',
+    await run(
+      'INSERT INTO api_keys (id, user_id, api_key, name, created_at) VALUES ($1, $2, $3, $4, $5)',
       [apiKeyId, userId, apiKey, name, createdAt]
     );
 
@@ -46,8 +46,8 @@ router.get('/', async (req, res) => {
   try {
     const userId = req.userId;
 
-    const result = query(
-      'SELECT id, name, created_at FROM api_keys WHERE user_id = ? ORDER BY created_at DESC',
+    const result = await query(
+      'SELECT id, name, created_at FROM api_keys WHERE user_id = $1 ORDER BY created_at DESC',
       [userId]
     );
 
@@ -69,8 +69,8 @@ router.post('/:keyId', async (req, res) => {
     const { keyId } = req.params;
     const userId = req.userId;
 
-    const result = run(
-      'DELETE FROM api_keys WHERE id = ? AND user_id = ?',
+    const result = await run(
+      'DELETE FROM api_keys WHERE id = $1 AND user_id = $2',
       [keyId, userId]
     );
 

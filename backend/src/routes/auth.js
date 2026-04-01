@@ -17,8 +17,8 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    const existingUser = query(
-      'SELECT id FROM users WHERE username = ? OR email = ?',
+    const existingUser = await query(
+      'SELECT id FROM users WHERE username = $1 OR email = $2',
       [username, email]
     );
 
@@ -33,8 +33,8 @@ router.post('/register', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
     const createdAt = Math.floor(Date.now() / 1000);
 
-    run(
-      'INSERT INTO users (id, username, password_hash, email, created_at) VALUES (?, ?, ?, ?, ?)',
+    await run(
+      'INSERT INTO users (id, username, password_hash, email, created_at) VALUES ($1, $2, $3, $4, $5)',
       [userId, username, passwordHash, email, createdAt]
     );
 
@@ -65,8 +65,8 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const result = query(
-      'SELECT id, password_hash FROM users WHERE username = ?',
+    const result = await query(
+      'SELECT id, password_hash FROM users WHERE username = $1',
       [username]
     );
 
@@ -105,8 +105,8 @@ router.post('/login', async (req, res) => {
 
 router.get('/me', authenticateToken, async (req, res) => {
   try {
-    const result = query(
-      'SELECT id, username, email, created_at FROM users WHERE id = ?',
+    const result = await query(
+      'SELECT id, username, email, created_at FROM users WHERE id = $1',
       [req.userId]
     );
 

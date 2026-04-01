@@ -24,8 +24,8 @@ const userServiceImpl = {
     const { api_key } = call.request;
     
     try {
-      const result = query(
-        'SELECT user_id FROM api_keys WHERE api_key = ?',
+      const result = await query(
+        'SELECT user_id FROM api_keys WHERE api_key = $1',
         [api_key]
       );
 
@@ -56,7 +56,7 @@ const userServiceImpl = {
     const { api_key } = call.request;
     
     try {
-      run('DELETE FROM api_keys WHERE api_key = ?', [api_key]);
+      await run('DELETE FROM api_keys WHERE api_key = $1', [api_key]);
       callback(null, { success: true });
     } catch (error) {
       console.error('InvalidateApiKey error:', error);
@@ -68,8 +68,8 @@ const userServiceImpl = {
     const { user_id } = call.request;
     
     try {
-      const result = query(
-        'SELECT id, username, email FROM users WHERE id = ?',
+      const result = await query(
+        'SELECT id, username, email FROM users WHERE id = $1',
         [user_id]
       );
 

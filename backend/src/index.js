@@ -43,12 +43,13 @@ app.use((err, req, res, next) => {
 async function start() {
   try {
     await initDatabase();
-    console.log('Database initialized');
+    console.log('YugabyteDB initialized');
     
     startGrpcServer();
     
     app.listen(PORT, () => {
       console.log(`Enorde User Server running on http://0.0.0.0:${PORT}`);
+      console.log(`Connected to YugabyteDB at ${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || '5433'}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
